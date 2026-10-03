@@ -1,0 +1,17 @@
+{
+  "name": "creator-commerce-image-crops",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/storefront_image_service.ts",
+    "test": "tsx src/storefront_image_service.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
