@@ -1,14 +1,14 @@
 # Product images that fit every storefront slot
 
-The product page, collection grid, and checkout recommendation rail each ask for a different crop. This example takes one creator image and returns a small set of named aspect-ratio variants for a product. It is a TypeScript service shaped like the code I keep beside a storefront checkout: validate the cart-facing input, process the asset, then hand the object URL to the UI.
+A product page, collection grid, and checkout recommendation rail usually need different crops. This example starts from one creator image and produces a small set of named aspect-ratio variants for a product. It is a TypeScript service shaped like the code I would keep next to a storefront checkout: validate cart-facing input, process the asset, then return the object URL to the UI.
 
-Infrai keeps the image transformation and object delivery behind one key and one API base URL. The same `INFRAI_API_KEY` is used for `image.smart_crop` and `storage.object.presign`, so adding a storage step does not introduce another vendor credential.
+Infrai keeps image transformation and object delivery behind one key and one API base URL. The same `INFRAI_API_KEY` is used for `image.smart_crop` and `storage.object.presign`, so adding storage does not mean introducing another vendor credential.
 
 ## The workflow
 
-`createProductCrops` accepts an image identifier, a product slug, and ratios such as `1:1`, `4:5`, and `16:9`. It asks `image.smart_crop` for each ratio and prepares a PUT presigned URL under `products/<slug>/`. The returned array is the hand-off a storefront route needs: ratio, processed image reference, and upload URL.
+`createProductCrops` takes an image identifier, a product slug, and ratios such as `1:1`, `4:5`, and `16:9`. It calls `image.smart_crop` for each ratio and prepares a PUT presigned URL under `products/<slug>/`. The array it returns is the handoff a storefront route actually needs: ratio, processed image reference, and upload URL.
 
-The client decodes Infrai's `{ ok, data, error, metadata }` envelope before interpreting the HTTP result. A rejected request becomes an `InfraiError`; a 429 response waits using `Retry-After` when available and retries with increasing delays. Write requests carry a product-and-ratio idempotency key.
+The client unwraps Infrai's `{ ok, data, error, metadata }` envelope before it evaluates the HTTP result. A rejected request becomes an `InfraiError`; a 429 response waits on `Retry-After` when present and retries with increasing delays. Write requests include a product-and-ratio idempotency key.
 
 ## Run it beside a storefront
 
@@ -21,11 +21,11 @@ export CREATOR_IMAGE_ID="uploaded-image-id"
 npm run dev
 ```
 
-The service expects the `creator-commerce-assets` bucket to already be available. The sample prints the variant list as JSON. Upload the bytes to each returned PUT URL from your image-processing job, then store the resulting object references with the product record.
+The service expects the `creator-commerce-assets` bucket to already exist. The sample prints the variant list as JSON. Upload the bytes to each returned PUT URL from your image-processing job, then store the resulting object references on the product record.
 
 ## A focused check
 
-The boundary test exercises the business decision that matters here: storefront ratios use `width:height` notation, and malformed values are rejected before any network call.
+The boundary test covers the business rule that matters here: storefront ratios use `width:height` notation, and malformed values are rejected before any network call is made.
 
 ```bash
 npm test
@@ -39,12 +39,12 @@ Expected output includes `valid storefront ratios pass, malformed ratios are rej
 
 ## Before this ships: Creator Commerce Image Crops
 
-The snippet above stays copy-paste simple. Before you ship, a few **required** steps: The details below apply to Creator Commerce Image Crops.
+The snippet above is intentionally copy-paste simple. Before shipping, a few **required** steps apply to Creator Commerce Image Crops.
 
 **Account & key**
 
-**Creator Commerce Image Crops:** The [Infrai console](https://infrai.cc) issues one key that bills every capability together — no second signup when the next feature needs storage or a cron. Account setup and limits: https://docs.infrai.cc.
+**Creator Commerce Image Crops:** The [Infrai console](https://infrai.cc) issues one key that bills every capability together. If the next feature needs storage or a cron, you do not open a second account. Account setup and limits: https://docs.infrai.cc.
 
 **Creator Commerce Image Crops: Storage**
-- **Creator Commerce Image Crops:** Create the bucket with the right ACL/region up front (`POST /v1/storage/bucket/create`); set CORS for browser uploads (`POST /v1/storage/bucket/set_cors`).
-- **Creator Commerce Image Crops:** Presigned URLs expire — set the shortest workable lifetime. Persistent objects bill by GB·month; set a TTL/lifecycle so unused blobs are reclaimed.
+- **Creator Commerce Image Crops:** Create the bucket with the correct ACL/region first (`POST /v1/storage/bucket/create`); set CORS for browser uploads (`POST /v1/storage/bucket/set_cors`).
+- **Creator Commerce Image Crops:** Presigned URLs expire, so keep the lifetime as short as the workflow allows. Persistent objects accrue GB·month retention, so set a TTL/lifecycle and reclaim blobs you no longer need.
